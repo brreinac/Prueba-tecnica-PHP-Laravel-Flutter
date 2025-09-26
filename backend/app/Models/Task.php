@@ -9,28 +9,17 @@ class Task extends Model
 {
     use HasFactory;
 
-    /**
-     * Campos que se pueden asignar de manera masiva
-     */
     protected $fillable = [
         'title',
         'description',
-        'due_date',
-        'done',
+        'completed',
         'user_id',
     ];
 
-    /**
-     * Tipos de conversión automática de atributos
-     */
     protected $casts = [
-        'done' => 'boolean',
-        'due_date' => 'datetime',
+        'completed' => 'boolean',
     ];
 
-    /**
-     * Relación: Una tarea pertenece a un usuario
-     */
     public function user()
     {
         return $this->belongsTo(User::class);

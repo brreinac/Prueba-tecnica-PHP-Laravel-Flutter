@@ -9,54 +9,52 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json(['data' => $request->user()->tasks()->latest()->get()]);
+        return Task::where('user_id', $request->user()->id)->get();
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'due_date'    => 'nullable|date',
-            'done'        => 'boolean',
         ]);
 
-        $task = $request->user()->tasks()->create($data);
-        return response()->json(['data' => $task], 201);
+        $task = Task::create([
+            'title'       => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'completed'   => false,
+            'user_id'     => $request->user()->id,
+        ]);
+
+        return response()->json($task, 201);
     }
 
-    public function show(Task $task, Request $request)
+    public function show(Request $request, $id)
     {
-        if ($task->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-        return response()->json(['data' => $task]);
+        $task = Task::where('user_id', $request->user()->id)->findOrFail($id);
+        return response()->json($task);
     }
 
-    public function update(Request $request, Task $task)
+    public function update(Request $request, $id)
     {
-        if ($task->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
+        $task = Task::where('user_id', $request->user()->id)->findOrFail($id);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'due_date'    => 'nullable|date',
-            'done'        => 'boolean',
+            'completed'   => 'boolean',
         ]);
 
-        $task->update($data);
-        return response()->json(['data' => $task]);
+        $task->update($validated);
+
+        return response()->json($task);
     }
 
-    public function destroy(Task $task, Request $request)
+    public function destroy(Request $request, $id)
     {
-        if ($task->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
+        $task = Task::where('user_id', $request->user()->id)->findOrFail($id);
         $task->delete();
-        return response()->json(['message' => 'Deleted']);
+
+        return response()->json(['message' => 'Tarea eliminada']);
     }
 }

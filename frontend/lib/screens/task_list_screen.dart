@@ -1,46 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/task_provider.dart';
-import 'task_form_screen.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/task_item.dart';
 
-class TaskListScreen extends StatelessWidget {
+class TasksScreen extends StatefulWidget {
+  const TasksScreen({super.key});
+
+  @override
+  State<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends State<TasksScreen> {
+  final taskController = TextEditingController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    Provider.of<TaskProvider>(context, listen: false).fetchTasks(auth.token!);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<TaskProvider>(context);
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text("Mis Tareas")),
-      body: FutureBuilder(
-        future: provider.fetchTasks(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (provider.tasks.isEmpty) {
-            return Center(child: Text("No hay tareas"));
-          }
-          return ListView.builder(
-            itemCount: provider.tasks.length,
-            itemBuilder: (context, index) {
-              final task = provider.tasks[index];
-              return ListTile(
-                title: Text(task.title),
-                subtitle: Text(task.description),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => provider.deleteTask(task.id),
-                ),
-              );
-            },
-          );
-        },
+      appBar: AppBar(
+        title: const Text("My Tasks"),
+        actions: [
+          IconButton(
+              onPressed: () {
+                auth.logout();
+                Navigator.pushReplacementNamed(context, "/");
+              },
+              icon: const Icon(Icons.logout))
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => TaskFormScreen()));
-        },
-        child: Icon(Icons.add),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(controller: taskController, decoration: const InputDecoration(labelText: "New task")),
+                ),
+                IconButton(
+                  onPressed: () {
+                    if (taskController.text.isNotEmpty) {
+                      taskProvider.addTask(taskController.text, auth.token!);
+                      taskController.clear();
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                )
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: taskProvider.tasks.length,
+              itemBuilder: (context, index) {
+                final task = taskProvider.tasks[index];
+                return TaskItem(task: task);
+              },
+            ),
+          )
+        ],
       ),
     );
   }
